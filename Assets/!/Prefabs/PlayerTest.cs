@@ -23,6 +23,7 @@ public class PlayerTest : MonoBehaviour
     public PlayerInputActions playerControls;
     private InputAction jump;
     private InputAction movement;
+    private InputAction look;
     private InputAction fire;
     Vector3 moveDirection = Vector3.zero;
 
@@ -40,11 +41,12 @@ public class PlayerTest : MonoBehaviour
     RaycastHit[] hits;
     Vector3 gravityDir;
     Vector3 normalVector;
+
     Vector3 input;
 
     public bool isTouchingPlanetSurface = false;
-    private Transform playerCamera;
-    private Transform playerCameraArm;
+    public Transform playerCameraTransform;
+    public Transform playerCameraArm;
 
     //animator & assets go here
 
@@ -58,13 +60,22 @@ public class PlayerTest : MonoBehaviour
         playerControls.Player.Jump.performed += Jump;
 
         //initializing gravity
+        rb = GetComponent<Rigidbody>();
+        tempGravity = gravity;
+        tempRotationSpeed = rotationSpeed;
     }
     private void OnEnable()
     {
         movement = playerControls.Player.Move;
+        look = playerControls.Player.Look;
 
         movement.Enable();
     }
+    private void OnDisable()
+    {
+        movement.Disable();
+    }
+
     void Jump(InputAction.CallbackContext context)
     {
         if (!canJump) return;
@@ -100,9 +111,10 @@ public class PlayerTest : MonoBehaviour
 
     void Movement()
     {
-        moveDirection = new Vector3(movement.ReadValue<Vector2>().x, 0, movement.ReadValue<Vector2>().y);
+        //input = new Vector3(look.ReadValue<Vector2>().x, 0, look.ReadValue<Vector2>().y);
+        input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
 
-        Vector3 cameraRotation = new Vector3(0, playerCamera.localEulerAngles.y + playerCameraArm.localEulerAngles.y, 0);
+        Vector3 cameraRotation = new Vector3(0, playerCameraTransform.localEulerAngles.y + playerCameraArm.localEulerAngles.y, 0);
         Vector3 direction = Quaternion.Euler(cameraRotation) * input;
         Vector3 movement_dir = (transform.forward * direction.x + transform.right * direction.x);
         Vector3 currentNormalVel = Vector3.Project(rb.velocity, normalVector.normalized);
@@ -197,16 +209,13 @@ public class PlayerTest : MonoBehaviour
         if (isTouchingPlanetSurface && canJump) rotationSpeed = tempRotationSpeed;
     }
 
-    private void OnDisable()
-    {
-        movement.Disable();
-    }
+
 
     void Update()
     {
+        //moveDirection = new Vector3(movement.ReadValue<Vector2>().x, 0, movement.ReadValue<Vector2>().y);
         /* float moveX = Input.GetAxis("Horizontal");
          float moveZ = Input.GetAxis("Vertical");*/
-        moveDirection = movement.ReadValue<Vector3>();
     }
 
    
@@ -218,6 +227,6 @@ public class PlayerTest : MonoBehaviour
         ApplyPlanetRotation();
 
         //may move to seperate function
-        rb.velocity = new Vector3(-moveDirection.x * moveSpeed, 0, -moveDirection.z * moveSpeed);
+       // rb.velocity = new Vector3(-moveDirection.x * moveSpeed, 0, -moveDirection.z * moveSpeed);
     }
 }
