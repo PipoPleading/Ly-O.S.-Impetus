@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GravityArea : MonoBehaviour
+public class GravityAreaPrototype : MonoBehaviour
 {
 
     private void OnTriggerEnter(Collider other)
