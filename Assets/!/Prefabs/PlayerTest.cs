@@ -34,23 +34,38 @@ public class PlayerTest : MonoBehaviour
     public float gravity;
     private float tempGravity;
 
+
+    //depricated**
     public Transform currentPlanet;
     //may need in the future post model creation, may need to rework hierarchy *shrug*
     //public Transform playerVisual;
 
+    //depricated**
     RaycastHit[] hits;
-    Vector3 gravityDir;
     Vector3 normalVector;
+
+    Vector3 gravityDir;
 
     Vector3 input;
 
+    //need to rework for wall run camera rotations
     public bool isTouchingPlanetSurface = false;
+
+    //week one focus (besides gravity & grapple)
     public Transform playerCameraTransform;
     public Transform playerCameraArm;
 
     //animator & assets go here
 
-
+    // **TO-DO**
+    // Walk, Run, MaxRun, Inbetweens
+    //
+    // 
+    // GroundBoost, AirBoost, DashTransition
+    // LWallrun, RWallrun, WallrunBoost
+    // Jump, BoostJump(Stretch)
+    // Idle
+    // GrapArm, GrapShoot, GrapReel, GrapFail (needs more itteration)
 
 
     private void Awake()
@@ -80,7 +95,7 @@ public class PlayerTest : MonoBehaviour
     {
         if (!canJump) return;
 
-        rb.velocity *= 0;
+        rb.linearVelocity *= 0;
         //need to modify later for dynamic jump
         rb.AddForce(normalVector * jumpForce, ForceMode.Impulse);
         //might mess with?
@@ -117,8 +132,8 @@ public class PlayerTest : MonoBehaviour
         Vector3 cameraRotation = new Vector3(0, playerCameraTransform.localEulerAngles.y + playerCameraArm.localEulerAngles.y, 0);
         Vector3 direction = Quaternion.Euler(cameraRotation) * input;
         Vector3 movement_dir = (transform.forward * direction.x + transform.right * direction.x);
-        Vector3 currentNormalVel = Vector3.Project(rb.velocity, normalVector.normalized);
-        rb.velocity = currentNormalVel + (movement_dir * moveSpeed);
+        Vector3 currentNormalVel = Vector3.Project(rb.linearVelocity, normalVector.normalized);
+        rb.linearVelocity = currentNormalVel + (movement_dir * moveSpeed);
 
         if (movement_dir != Vector3.zero)
         {
@@ -136,7 +151,7 @@ public class PlayerTest : MonoBehaviour
 
     void GravitySlowDown(bool slowDown)
     {
-        if (slowDown) rb.velocity *= 0.5f;
+        if (slowDown) rb.linearVelocity *= 0.5f;
     }
 
     void ApplyGravity()
