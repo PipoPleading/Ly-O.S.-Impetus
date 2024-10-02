@@ -16,7 +16,8 @@ public class GravityBody : MonoBehaviour
         {
             if (ga.Count == 0) return Vector3.zero;
             //need to update to c# version 10 first
-            //ga.Sort((area1, area2)) => area1.Priority.CompareTo(area2.Priority);
+            //update: did that lol
+            ga.Sort((a, b) => a.Priority.CompareTo(b.Priority));
             return ga.Last().GetGravityDirection(this).normalized;
         }
     }

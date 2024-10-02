@@ -3,11 +3,13 @@ using UnityEngine;
 public abstract class GravityArea : MonoBehaviour
 {
     //priority of what field should be applying physics
-    [SerializeField] private int priority;
+    [SerializeField] private int _priority;
+    public int Priority => _priority;
     //higher level of priority for moving between 'planets'
     [SerializeField] private int gravitygroup;
 
     //may use lambda in c# 10 to dynamically assign the priority to the player
+    //update: done
     void Start()
     { 
         transform.GetComponent<Collider>().isTrigger = true;
