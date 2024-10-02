@@ -8,9 +8,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] public bool isGrounded = false;
 
     private float _groundCheckRadius = 0.3f;
-    private float _speed = 8;
-    private float _turnSpeed = 1500f;
-    private float _jumpForce = 500f;
+    public float _speed = 8;
+    public float _turnSpeed = 1500f;
+    public float _jumpForce = 500f;
 
     private Rigidbody _rigidbody;
     private Vector3 _direction;
@@ -34,6 +34,13 @@ public class PlayerController : MonoBehaviour
         {
             _rigidbody.AddForce(-_gravityBody.gravDirection * _jumpForce, ForceMode.Impulse);
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.blue;
+        Vector3 test = new Vector3(transform.position.x, transform.position.y - 1, transform.position.z);
+        Gizmos.DrawSphere(test, _groundCheckRadius);
     }
 
     void FixedUpdate()
