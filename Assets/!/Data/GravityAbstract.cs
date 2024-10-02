@@ -6,6 +6,8 @@ public abstract class GravityArea : MonoBehaviour
     [SerializeField] private int priority;
     //higher level of priority for moving between 'planets'
     [SerializeField] private int gravitygroup;
+
+    //may use lambda in c# 10 to dynamically assign the priority to the player
     void Start()
     { 
         transform.GetComponent<Collider>().isTrigger = true;

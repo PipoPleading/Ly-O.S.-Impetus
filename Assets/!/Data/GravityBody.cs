@@ -26,7 +26,6 @@ public class GravityBody : MonoBehaviour
         ga = new List<GravityArea>();
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         rb.AddForce(gravDirection * (gravityForce * Time.fixedDeltaTime), ForceMode.Acceleration);
