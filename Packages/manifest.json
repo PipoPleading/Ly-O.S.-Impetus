@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.alexejhero.unitycsharp11": "https://github.com/Alexejhero/Unity-CSharp11.git?path=Assets/UnityCSharp11",
+    "com.unity.cinemachine": "3.1.1",
     "com.unity.collab-proxy": "2.5.1",
     "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.11.0",
