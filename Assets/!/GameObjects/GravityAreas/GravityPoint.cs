@@ -2,15 +2,15 @@ using UnityEngine;
 
 public class GravityPoint : GravityArea
 {
-    [SerializeField] private Vector3 center;
+    [SerializeField] private Transform center;
     public override Vector3 GetGravityDirection(GravityBody gb)
     {
-        return (center - gb.transform.position).normalized;
+        return (center.position - gb.transform.position).normalized;
     }
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, center);
-        Gizmos.DrawWireSphere(center, 5);
+        Gizmos.DrawLine(transform.position, center.position);
+        Gizmos.DrawWireSphere(center.position, 5);
     }
 }
