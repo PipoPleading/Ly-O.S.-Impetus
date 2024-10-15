@@ -2519,10 +2519,11 @@ MonoBehaviour:
     m_Bits: 0
   _groundCheck: {fileID: 1914954021}
   _cam: {fileID: 222737465}
-  isGrounded: 0
   _speed: 16
-  _turnSpeed: 1500
   _jumpForce: 500
+  jump: 0
+  sprint: 0
+  _turnSpeed: 1500
 --- !u!114 &553353608
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2642,10 +2643,11 @@ MonoBehaviour:
     m_Bits: 0
   _groundCheck: {fileID: 1980579953}
   _cam: {fileID: 2040825242}
-  isGrounded: 0
   _speed: 16
-  _turnSpeed: 1500
   _jumpForce: 500
+  jump: 0
+  sprint: 0
+  _turnSpeed: 1500
 --- !u!54 &604376907
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5169,6 +5171,51 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1135401883}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1147144489
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1147144491}
+  - component: {fileID: 1147144490}
+  m_Layer: 0
+  m_Name: Level Data
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1147144490
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1147144489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3529d951e688a847b82b489650814b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fps: 60
+--- !u!4 &1147144491
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1147144489}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 37.72043, y: 47.595596, z: -170.11385}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1149499557 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1533144346605086726, guid: 62f002859c8790e4bb53415cf62c933d, type: 3}
@@ -7855,3 +7902,4 @@ SceneRoots:
   - {fileID: 2039408927}
   - {fileID: 732500790}
   - {fileID: 1302919830}
+  - {fileID: 1147144491}

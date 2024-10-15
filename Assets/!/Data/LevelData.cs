@@ -15,10 +15,16 @@ public class LevelData : MonoBehaviour
         Application.targetFrameRate = fps;
     }
 
-    private void Start()
+    private void Awake()
     {
+        Save();
+        Load();
         Application.targetFrameRate = fps;
         Debug.Log(fps);
     }
 
+    private void Update()
+    {
+        //Debug.Log(fps);
+    }
 }
