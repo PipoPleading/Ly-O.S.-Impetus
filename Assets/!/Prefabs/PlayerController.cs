@@ -6,8 +6,6 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private LayerMask _groundMask;
-    [SerializeField] private Transform _groundCheck;
     [SerializeField] public Camera cam;
 
     private float _groundCheckRadius = 0.3f;

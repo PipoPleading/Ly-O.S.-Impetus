@@ -83,7 +83,7 @@ public class KinematicCharacterController : MonoBehaviour
 
     public bool ShouldCrouch { get; set; }
     public bool IsCrouching { get; private set; }
-    private float _height;
+    private float height;
 
     public bool IsSprinting { get; set; }
 
@@ -93,8 +93,8 @@ public class KinematicCharacterController : MonoBehaviour
     private bool _jumping;
     private float _jumpForce;
 
-    private Rigidbody _rb;
-    private CapsuleCollider _col;
+    private Rigidbody rb;
+    private CapsuleCollider col;
     private Bounds _bounds;
 
     private Vector3 _sphereOffsetBottom, _sphereOffsetTop;
@@ -103,14 +103,14 @@ public class KinematicCharacterController : MonoBehaviour
 
     void Awake()
     {
-        _rb = GetComponent<Rigidbody>();
-        _rb.isKinematic = true;
-        _rb.useGravity = false;
-        _rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        _col = GetComponent<CapsuleCollider>();
-        _col.center = new Vector3(0, _col.height / 2, 0);
-        _height = _col.height;
+        col = GetComponent<CapsuleCollider>();
+        col.center = new Vector3(0, col.height / 2, 0);
+        height = col.height;
 
         Engine = GetComponent<IPlayerEngine>();
 
@@ -118,8 +118,8 @@ public class KinematicCharacterController : MonoBehaviour
         Gravity = (-2 * m_jumpHeight * MaxSpeed * MaxSpeed) / (halfDist * halfDist);
         _jumpForce = (2 * m_jumpHeight * MaxSpeed) / halfDist;
 
-        _sphereOffsetBottom = new Vector3(0, _col.radius, 0);
-        _sphereOffsetTop = new Vector3(0, _col.height - _col.radius, 0);
+        _sphereOffsetBottom = new Vector3(0, col.radius, 0);
+        _sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
 
         _hitPoints = new List<RaycastHit>();
     }
@@ -131,8 +131,8 @@ public class KinematicCharacterController : MonoBehaviour
         Gravity = (-2 * m_jumpHeight * MaxSpeed * MaxSpeed) / (halfDist * halfDist);
         _jumpForce = (2 * m_jumpHeight * MaxSpeed) / halfDist;
 
-        _sphereOffsetBottom = new Vector3(0, _col.radius, 0);
-        _sphereOffsetTop = new Vector3(0, _col.height - _col.radius, 0);
+        _sphereOffsetBottom = new Vector3(0, col.radius, 0);
+        _sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
 #endif
     }
 
@@ -166,7 +166,7 @@ public class KinematicCharacterController : MonoBehaviour
     /// </summary>
     public Vector3 Move(Vector2 moveDir, bool shouldJump)
     {
-        _bounds = _col.bounds;
+        _bounds = col.bounds;
         _bounds.Expand(-2 * m_skinWidth);
 
         IsCrouching = UpdateCrouchState(ShouldCrouch);
@@ -226,7 +226,7 @@ public class KinematicCharacterController : MonoBehaviour
         }
 
         // ACTUALLY MOVE THE RIGIDBODY
-        _rb.MovePosition(transform.position + _moveAmount);
+        rb.MovePosition(transform.position + _moveAmount);
 
         _wasGrounded = IsGrounded;
         _velocity = _moveAmount / Time.deltaTime;
@@ -290,7 +290,7 @@ public class KinematicCharacterController : MonoBehaviour
 
                         if (stepOffset < m_maxStepHeight && stepOffset > m_skinWidth)
                         {
-                            float stepDist = _col.radius - stepOffset - m_skinWidth;
+                            float stepDist = col.radius - stepOffset - m_skinWidth;
                             if (Physics.CapsuleCast(
                                 pos + _sphereOffsetBottom + snapToSurface + new Vector3(0, stepDist, 0),
                                 pos + _sphereOffsetTop + snapToSurface + new Vector3(0, stepDist, 0),
@@ -435,16 +435,16 @@ public class KinematicCharacterController : MonoBehaviour
     {
         if (shouldCrouch && !IsCrouching)
         {
-            _col.height = m_crouchHeight;
-            _col.center = new Vector3(0, _col.height / 2, 0);
+            col.height = m_crouchHeight;
+            col.center = new Vector3(0, col.height / 2, 0);
             return true;
         }
         else if (IsCrouching && !shouldCrouch)
         {
             if (CanUncrouch())
             {
-                _col.height = _height;
-                _col.center = new Vector3(0, _col.height / 2, 0);
+                col.height = height;
+                col.center = new Vector3(0, col.height / 2, 0);
                 return false;
             }
         }
@@ -453,8 +453,8 @@ public class KinematicCharacterController : MonoBehaviour
 
     private bool CanUncrouch()
     {
-        float dist = _height - m_crouchHeight + m_skinWidth;
-        Vector3 origin = _bounds.center + new Vector3(0, _col.height / 2 - _col.radius, 0);
+        float dist = height - m_crouchHeight + m_skinWidth;
+        Vector3 origin = _bounds.center + new Vector3(0, col.height / 2 - col.radius, 0);
         return !Physics.SphereCast(origin, _bounds.extents.x, Vector3.up, out RaycastHit hit, dist, m_collisionMask);
     }
 }
