@@ -365,6 +365,17 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""a75d68fc-1fcc-4a96-b4e8-7f3b1bdfc76e"",
+                    ""path"": ""<XInputController>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Jump"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""ce23e900-39a6-46e1-b8a6-4df7d4dd3737"",
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
