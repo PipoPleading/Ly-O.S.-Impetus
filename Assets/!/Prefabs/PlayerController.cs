@@ -15,7 +15,6 @@ public class PlayerController : MonoBehaviour
     private Rigidbody rb;
     private Vector3 overallDirection;
     Vector3 velocity;
-    Vector2 Dir;
 
     // from player inputs
     [SerializeField] public bool canJump = false;
@@ -26,8 +25,8 @@ public class PlayerController : MonoBehaviour
     Vector2 dir;
     public float _turnSpeed = 1500f;
 
-    PlayerInputActions input;
-
+/*    PlayerInputActions input;
+*/
     [SerializeField]
     InputActionReference move, look, spring;
     //kinematic base class containing collide and slide stuff
@@ -71,9 +70,9 @@ public class PlayerController : MonoBehaviour
     {
         //omnidirectional gravity
         Vector3 direction;
-        bool isMoving = overallDirection.magnitude > 0.1f;
- 
-/*        direction = transform.forward * overallDirection.z;
+/*        bool isMoving = overallDirection.magnitude > 0.1f;
+
+        direction = transform.forward * overallDirection.z;
         rb.MovePosition(rb.position + direction * (_speed * Time.fixedDeltaTime));
 
         Quaternion rightDirection = Quaternion.Euler(0f, overallDirection.x * (_turnSpeed * Time.fixedDeltaTime), 0f);

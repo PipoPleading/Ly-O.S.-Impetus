@@ -2,10 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using UnityEngine.InputSystem;
+using UnityEngine.TextCore.Text;
+using UnityEngine.Windows;
+
+
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(GravityBody))]
 [RequireComponent(typeof(CapsuleCollider))]
+[RequireComponent(typeof(Camera))]
 public class KinematicCharacterController : MonoBehaviour
 {
+
+    //[Header("Controls")]
+    [SerializeField]
+    InputActionReference move, look, spring;
+    //axis from player input
+    private Vector2 moveDir;
+    private Vector2 lookDir;
+    PlayerInputActions input;
+    bool jumpInput;
 
     [Header("Movement")]
 
@@ -19,7 +35,8 @@ public class KinematicCharacterController : MonoBehaviour
     [SerializeField] private float m_maxFallSpeed = 20;
 
     [Tooltip("The default maximum movement speed (can be overridden by character motors).")]
-    [field: SerializeField] public float MaxSpeed { get; private set; } = 5;
+    [field: SerializeField] public float maxSpeed { get; private set; } = 5;
+
 
 
     [Header("Collision")]
@@ -61,13 +78,13 @@ public class KinematicCharacterController : MonoBehaviour
     [SerializeField] private bool SHOW_DEBUG = false;
 
 
-    public IPlayerEngine Engine { get; private set; }
-    private Vector3 _moveAmount;
-    private Vector3 _velocity;
-    private Vector3 _groundSpeed;
+    private Vector3 moveAmount;
+    private Vector3 calculatedVelocity;
+    private Vector3 velocity;
+    private Vector3 groundSpeed;
 
-    public bool IsGrounded { get; private set; }
-    private bool _wasGrounded;
+    public bool isGrounded { get; private set; }
+    private bool wasGrounded;
     public bool LandedThisFrame { get; private set; }
     public bool IsBumpingHead { get; private set; }
 
@@ -78,79 +95,133 @@ public class KinematicCharacterController : MonoBehaviour
 
     public bool isClimbingStep { get; private set; }
 
-    private List<RaycastHit> _hitPoints;
+    private List<RaycastHit> hitPoints;
     private Vector3 _groundPoint;
 
     public bool ShouldCrouch { get; set; }
-    public bool IsCrouching { get; private set; }
+    public bool isCrouching { get; private set; }
     private float height;
 
-    public bool IsSprinting { get; set; }
+    public bool isRunning { get; set; }
+    public bool isSpriting { get; set; }
 
     public float Gravity { get; private set; }
-    private Vector3 _gravityVector;
+    //lowkey need to elaborate on
+    private Vector3 gravityVector;
     public bool Coyote { get; private set; }
-    private bool _jumping;
-    private float _jumpForce;
+    private bool jumping;
+    private float jumpForce;
 
     private Rigidbody rb;
+    private GravityBody gb;
     private CapsuleCollider col;
-    private Bounds _bounds;
+    private Camera cam;
 
-    private Vector3 _sphereOffsetBottom, _sphereOffsetTop;
-
+    //temp var holding the collider's boundaries
+    private Bounds bounds;
+    private Vector3 sphereOffsetBottom, sphereOffsetTop;
+    //for debug gizmos
     private Color[] _colors = { Color.red, new Color(1, 0.5f, 0), Color.yellow, Color.green, Color.cyan, Color.blue, Color.magenta };
+
+    //accelScaling variables
+    [Header("Scaling for acceleration, vis a vi Pizza Tower")]
+    [SerializeField]
+    private float walkSpeed = 5f;
+    [SerializeField]
+    private float runSpeed = 2f;
+    [SerializeField]
+    private float sprintSpeed = 2f;
+
+    //final movement vector
+    private Vector2 dir;
+
+    private Vector3 overallDirection;
+
 
     void Awake()
     {
+        //component initializations so i have to do less stuff per scene
+        input = new PlayerInputActions();
+
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity = false;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
+        gb = GetComponent<GravityBody>();
+        gb.gravityForce = 800;
+
         col = GetComponent<CapsuleCollider>();
         col.center = new Vector3(0, col.height / 2, 0);
         height = col.height;
 
-        Engine = GetComponent<IPlayerEngine>();
-
         float halfDist = m_jumpDistance / 2;
-        Gravity = (-2 * m_jumpHeight * MaxSpeed * MaxSpeed) / (halfDist * halfDist);
-        _jumpForce = (2 * m_jumpHeight * MaxSpeed) / halfDist;
+        Gravity = (-2 * m_jumpHeight * maxSpeed * maxSpeed) / (halfDist * halfDist);
+        Debug.Log("Gravity: " + Gravity);
+        jumpForce = (2 * m_jumpHeight * maxSpeed) / halfDist;
 
-        _sphereOffsetBottom = new Vector3(0, col.radius, 0);
-        _sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
+        sphereOffsetBottom = new Vector3(0, col.radius, 0);
+        sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
 
-        _hitPoints = new List<RaycastHit>();
+        hitPoints = new List<RaycastHit>();
+
+        cam = GetComponent<Camera>();
+
+        //player input reading, may put on a timer later for load screens and such idk
+        input.Player.Jump.performed += ctx => {
+            jumpInput = true;
+        };
+        input.Player.Jump.canceled += ctx => {
+            jumpInput = false;
+        };
+        input.Player.Look.performed += ctx => {
+            lookDir = ctx.ReadValue<Vector2>();
+        };
+        input.Player.Look.canceled += ctx => {
+            lookDir = Vector2.zero;
+        };
+
+    }
+
+    private void Start()
+    {
+        rb = transform.GetComponent<Rigidbody>();
+
+        //cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Update()
     {
-#if UNITY_EDITOR
-        float halfDist = m_jumpDistance / 2;
-        Gravity = (-2 * m_jumpHeight * MaxSpeed * MaxSpeed) / (halfDist * halfDist);
-        _jumpForce = (2 * m_jumpHeight * MaxSpeed) / halfDist;
+        /*#if UNITY_EDITOR
+                float halfDist = m_jumpDistance / 2;
+                Gravity = (-2 * m_jumpHeight * maxSpeed * maxSpeed) / (halfDist * halfDist);
+                jumpForce = (2 * m_jumpHeight * maxSpeed) / halfDist;
 
-        _sphereOffsetBottom = new Vector3(0, col.radius, 0);
-        _sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
-#endif
+                sphereOffsetBottom = new Vector3(0, col.radius, 0);
+                sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
+        #endif*/
+
+        moveDir = move.action.ReadValue<Vector2>();
+        overallDirection = new Vector3(moveDir.x, 0f, moveDir.y).normalized;
     }
 
     void OnDrawGizmos()
     {
         if (SHOW_DEBUG)
         {
-            Debug.DrawRay(transform.position, _velocity, Color.green, Time.deltaTime);
+            Debug.DrawRay(transform.position, calculatedVelocity, Color.green, Time.deltaTime);
 
-            if (IsGrounded || IsSliding)
+            if (isGrounded || IsSliding)
             {
                 Gizmos.DrawWireSphere(_groundPoint, 0.05f);
             }
 
-            if (_hitPoints == null) { return; }
+            if (hitPoints == null) { return; }
 
             int i = 0;
-            foreach (RaycastHit hit in _hitPoints)
+            foreach (RaycastHit hit in hitPoints)
             {
                 Color color = _colors[i % (_colors.Length - 1)];
                 Gizmos.DrawWireSphere(hit.point, 0.1f);
@@ -162,75 +233,82 @@ public class KinematicCharacterController : MonoBehaviour
 
     /// <summary>
     ///  Moves the attached rigidbody in the desired direction, taking into account gravity, collisions, and slopes, using
-    ///  the "collide and slide" algorithm. Returns the current velocity. (Pick either this or Move())
+    ///  the "collide and slide" algorithm. Returns the current calculatedVelocity. (Pick either this or Move())
     /// </summary>
     public Vector3 Move(Vector2 moveDir, bool shouldJump)
     {
-        _bounds = col.bounds;
-        _bounds.Expand(-2 * m_skinWidth);
+        bounds = col.bounds;
+        bounds.Expand(-2 * m_skinWidth);
 
-        IsCrouching = UpdateCrouchState(ShouldCrouch);
+        isCrouching = UpdateCrouchState(ShouldCrouch);
 
-        _groundSpeed = Engine.Accelerate(new Vector3(moveDir.x, 0, moveDir.y), _groundSpeed, this);
 
-        _moveAmount = _groundSpeed * Time.deltaTime;
+        //seperating from motorinstance & iplayerengine for optimization
+        groundSpeed = AccelScaling(new Vector3(moveDir.x, 0, moveDir.y));
+
+        moveAmount = groundSpeed * Time.deltaTime;
 
         IsBumpingHead = CeilingCheck(transform.position);
-        IsGrounded = GroundCheck(transform.position);
-        LandedThisFrame = IsGrounded && !_wasGrounded;
+        isGrounded = GroundCheck(transform.position);
+        LandedThisFrame = isGrounded && !wasGrounded;
+
+        if(LandedThisFrame)
+        {
+            //bunnyhop anim for state machine
+        }
 
         // coyote time
-        if (_wasGrounded && !IsGrounded)
+        if (wasGrounded && !isGrounded)
         {
             StartCoroutine(CoyoteTime());
         }
 
         // scale movement to slope angle
-        if (IsGrounded && IsOnSlope && !IsBumpingHead)
+        if (isGrounded && IsOnSlope && !IsBumpingHead)
         {
-            _moveAmount = ProjectAndScale(_moveAmount, _slopeNormal);
+            moveAmount = ProjectAndScale(moveAmount, _slopeNormal);
         }
 
-        _hitPoints.Clear();
+        hitPoints.Clear();
 
         // --- collision   
-        _moveAmount = CollideAndSlide(_moveAmount, transform.position);
+        moveAmount = CollideAndSlide(moveAmount, transform.position);
 
         // --- gravity
         if (m_useGravity)
         {
             //need to introduce gravity body code here
-            _jumping = false;
-            if (shouldJump && (IsGrounded || Coyote))
+            jumping = false;
+            if (shouldJump && (isGrounded || Coyote))
             {
-                _gravityVector.y = _jumpForce * Time.deltaTime;
-                _jumping = true;
+                gravityVector.y = jumpForce * Time.deltaTime;
+                jumping = true;
                 Coyote = false;
             }
 
-            if ((IsGrounded || _wasGrounded) && !_jumping)
+            if ((isGrounded || wasGrounded) && !jumping)
             {
-                _moveAmount += SnapToGround(transform.position + _moveAmount);
+                moveAmount += SnapToGround(transform.position + moveAmount);
             }
 
-            if ((IsGrounded && !_jumping) || (!IsGrounded && IsBumpingHead))
+            if ((isGrounded && !jumping) || (!isGrounded && IsBumpingHead))
             {
-                _gravityVector = new Vector3(0, Gravity, 0) * Time.deltaTime * Time.deltaTime;
+                gravityVector = new Vector3(0, Gravity, 0) * Time.deltaTime * Time.deltaTime;
             }
-            else if (_gravityVector.y > -m_maxFallSpeed)
+            else if (gravityVector.y > -m_maxFallSpeed)
             {
-                _gravityVector.y += Gravity * Time.deltaTime * Time.deltaTime;
+                gravityVector.y += Gravity * Time.deltaTime * Time.deltaTime;
             }
 
-            _moveAmount += CollideAndSlide(_gravityVector, transform.position + _moveAmount, true);
+            moveAmount += CollideAndSlide(gravityVector, transform.position + moveAmount, true);
         }
 
         // ACTUALLY MOVE THE RIGIDBODY
-        rb.MovePosition(transform.position + _moveAmount);
+        rb.MovePosition(transform.position + moveAmount);
 
-        _wasGrounded = IsGrounded;
-        _velocity = _moveAmount / Time.deltaTime;
-        return _velocity;
+        wasGrounded = isGrounded;
+        calculatedVelocity = moveAmount / Time.deltaTime;
+        return calculatedVelocity;
     }
 
     IEnumerator CoyoteTime()
@@ -247,6 +325,7 @@ public class KinematicCharacterController : MonoBehaviour
 
         bool climbingStep = false;
 
+        //3 is the number of passes used per fixedupdate/game frame
         for (int i = 0; i < 3; i++)
         {
             if (Mathf.Approximately(dir.magnitude, 0)) { break; }
@@ -254,16 +333,17 @@ public class KinematicCharacterController : MonoBehaviour
             float dist = dir.magnitude + m_skinWidth;
             Vector3 direction = dir.normalized;
             if (Physics.CapsuleCast(
-                pos + _sphereOffsetBottom,
-                pos + _sphereOffsetTop,
-                _bounds.extents.x,
+                pos + sphereOffsetBottom,
+                pos + sphereOffsetTop,
+                bounds.extents.x,
                 direction,
                 out RaycastHit hit,
                 dist,
                 m_collisionMask
             ))
             {
-                _hitPoints.Add(hit);
+                //collision
+                hitPoints.Add(hit);
 
                 float surfaceAngle = Vector3.Angle(Vector3.up, hit.normal);
                 Vector3 snapToSurface = direction * (hit.distance - m_skinWidth);
@@ -281,7 +361,7 @@ public class KinematicCharacterController : MonoBehaviour
                 {
                     planeNormal1 = hit.normal;
                     // treat steep slope as flat wall when grounded
-                    if (surfaceAngle > m_maxSlopeAngle && IsGrounded && !gravityPass)
+                    if (surfaceAngle > m_maxSlopeAngle && isGrounded && !gravityPass)
                     {
                         #region stair detection
                         float stepOffset = hit.point.y - _groundPoint.y;
@@ -292,9 +372,9 @@ public class KinematicCharacterController : MonoBehaviour
                         {
                             float stepDist = col.radius - stepOffset - m_skinWidth;
                             if (Physics.CapsuleCast(
-                                pos + _sphereOffsetBottom + snapToSurface + new Vector3(0, stepDist, 0),
-                                pos + _sphereOffsetTop + snapToSurface + new Vector3(0, stepDist, 0),
-                                _bounds.extents.x,
+                                pos + sphereOffsetBottom + snapToSurface + new Vector3(0, stepDist, 0),
+                                pos + sphereOffsetTop + snapToSurface + new Vector3(0, stepDist, 0),
+                                bounds.extents.x,
                                 stepDirection,
                                 out RaycastHit stepCheck,
                                 m_minStepDepth + 2 * m_skinWidth,
@@ -363,9 +443,9 @@ public class KinematicCharacterController : MonoBehaviour
     {
         float dist = m_maxStepHeight + m_skinWidth;
         if (Physics.CapsuleCast(
-            pos + _sphereOffsetBottom,
-            pos + _sphereOffsetTop,
-            _bounds.extents.x,
+            pos + sphereOffsetBottom,
+            pos + sphereOffsetTop,
+            bounds.extents.x,
             Vector3.down,
             out RaycastHit hit,
             dist,
@@ -375,7 +455,7 @@ public class KinematicCharacterController : MonoBehaviour
             float surfaceAngle = Vector3.Angle(hit.normal, Vector3.up);
             if (hit.distance - m_skinWidth < m_maxStepHeight && surfaceAngle <= m_maxSlopeAngle)
             {
-                IsGrounded = true;
+                isGrounded = true;
                 return new Vector3(0, -(hit.distance - m_skinWidth), 0);
             }
         }
@@ -388,8 +468,8 @@ public class KinematicCharacterController : MonoBehaviour
         bool grounded = false;
 
         float dist = 2 * m_skinWidth;
-        Vector3 origin = pos + _sphereOffsetBottom;
-        RaycastHit[] hits = Physics.SphereCastAll(origin, _bounds.extents.x, Vector3.down, dist, m_collisionMask);
+        Vector3 origin = pos + sphereOffsetBottom;
+        RaycastHit[] hits = Physics.SphereCastAll(origin, bounds.extents.x, Vector3.down, dist, m_collisionMask);
         if (hits.Length > 0)
         {
             foreach (RaycastHit hit in hits)
@@ -416,13 +496,13 @@ public class KinematicCharacterController : MonoBehaviour
     private bool CeilingCheck(Vector3 pos)
     {
         float dist = 2 * m_skinWidth;
-        Vector3 origin = pos + _sphereOffsetTop;
+        Vector3 origin = pos + sphereOffsetTop;
 
         RaycastHit hit;
-        if (Physics.SphereCast(origin, _bounds.extents.x, Vector3.up, out hit, dist, m_collisionMask))
+        if (Physics.SphereCast(origin, bounds.extents.x, Vector3.up, out hit, dist, m_collisionMask))
         {
             float angle = Vector3.Angle(Vector3.up, hit.normal);
-            float hitAngle = Vector3.Angle(_moveAmount.normalized, hit.normal);
+            float hitAngle = Vector3.Angle(moveAmount.normalized, hit.normal);
             if (angle >= m_minCeilingAngle || hitAngle >= m_minCeilingAngle)
             {
                 return true;
@@ -433,13 +513,13 @@ public class KinematicCharacterController : MonoBehaviour
 
     private bool UpdateCrouchState(bool shouldCrouch)
     {
-        if (shouldCrouch && !IsCrouching)
+        if (shouldCrouch && !isCrouching)
         {
             col.height = m_crouchHeight;
             col.center = new Vector3(0, col.height / 2, 0);
             return true;
         }
-        else if (IsCrouching && !shouldCrouch)
+        else if (isCrouching && !shouldCrouch)
         {
             if (CanUncrouch())
             {
@@ -448,13 +528,55 @@ public class KinematicCharacterController : MonoBehaviour
                 return false;
             }
         }
-        return IsCrouching;
+        return isCrouching;
     }
 
     private bool CanUncrouch()
     {
         float dist = height - m_crouchHeight + m_skinWidth;
-        Vector3 origin = _bounds.center + new Vector3(0, col.height / 2 - col.radius, 0);
-        return !Physics.SphereCast(origin, _bounds.extents.x, Vector3.up, out RaycastHit hit, dist, m_collisionMask);
+        Vector3 origin = bounds.center + new Vector3(0, col.height / 2 - col.radius, 0);
+        return !Physics.SphereCast(origin, bounds.extents.x, Vector3.up, out RaycastHit hit, dist, m_collisionMask);
+    }
+
+    private Vector3 AccelScaling(Vector3 wishDir)
+    {
+        Vector3 v = wishDir * walkSpeed;
+        if (isRunning) { v = v * runSpeed; }
+        if (isSpriting) {  v = v * sprintSpeed; }
+        return v;
+    }
+
+
+    void OnEnable()
+    {
+        input.Enable();
+    }
+
+    void OnDisable()
+    {
+        input.Disable();
+    }
+
+    private void FixedUpdate()
+    {
+        //omnidirectional gravity
+        Vector3 direction;/*
+        bool isMoving = overallDirection.magnitude > 0.1f;
+
+        direction = transform.forward * overallDirection.z;
+        rb.MovePosition(rb.position + direction * (_speed * Time.fixedDeltaTime));
+
+        Quaternion rightDirection = Quaternion.Euler(0f, overallDirection.x * (_turnSpeed * Time.fixedDeltaTime), 0f);
+        Quaternion newRotation = Quaternion.Slerp(rb.rotation, rb.rotation * rightDirection, Time.fixedDeltaTime * 3f); ;
+        rb.MoveRotation(newRotation);*/
+
+        //collide and slide
+
+        direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
+        direction.y = 0;
+        direction.Normalize();
+        dir = new Vector2(direction.x, direction.z);
+
+        velocity = Move(dir, jumpInput);
     }
 }

@@ -60,7 +60,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""id"": ""ad937ac3-bca6-446c-8b90-fb2fcb4a4fc6"",
                     ""expectedControlType"": """",
                     ""processors"": """",
-                    ""interactions"": """",
+                    ""interactions"": ""Hold"",
                     ""initialStateCheck"": false
                 },
                 {
@@ -247,7 +247,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""id"": ""c1f7a91b-d0fd-4a62-997e-7fb9b69bf235"",
                     ""path"": ""<Gamepad>/rightStick"",
                     ""interactions"": """",
-                    ""processors"": """",
+                    ""processors"": ""InvertVector2(invertX=false,invertY=false),StickDeadzone"",
                     ""groups"": "";Gamepad"",
                     ""action"": ""Look"",
                     ""isComposite"": false,

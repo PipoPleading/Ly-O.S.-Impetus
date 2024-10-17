@@ -81,7 +81,7 @@ namespace Unity.Cinemachine.Samples
     /// Building on top of SimplePlayerControllerBase, this is the 3D character controller.  
     /// It provides the following services and settings:
     /// 
-    /// - Damping (applied to the player's velocity, and to the player's rotation)
+    /// - Damping (applied to the player's calculatedVelocity, and to the player's rotation)
     /// - Strafe Mode
     /// - Gravity
     /// - Input Frames (which reference frame is used fo interpreting input: Camera, World, or Player)
@@ -103,7 +103,7 @@ namespace Unity.Cinemachine.Samples
     /// </summary>
     public class SimplePlayerController : SimplePlayerControllerBase
     {
-        [Tooltip("Transition duration (in seconds) when the player changes velocity or rotation.")]
+        [Tooltip("Transition duration (in seconds) when the player changes calculatedVelocity or rotation.")]
         public float Damping = 0.5f;
 
         [Tooltip("Makes the player strafe when moving sideways, otherwise it turns to face the direction of motion.")]
@@ -189,7 +189,7 @@ namespace Unity.Cinemachine.Samples
             if (m_LastInput.sqrMagnitude > 1)
                 m_LastInput.Normalize();
 
-            // Compute the new velocity and move the player, but only if not mid-jump
+            // Compute the new calculatedVelocity and move the player, but only if not mid-jump
             if (!m_IsJumping)
             {
                 m_IsSprinting = Sprint.Value > 0.5f;
@@ -221,7 +221,7 @@ namespace Unity.Cinemachine.Samples
 
             if (PostUpdate != null)
             {
-                // Get local-space velocity
+                // Get local-space calculatedVelocity
                 var vel = Quaternion.Inverse(transform.rotation) * m_CurrentVelocityXZ;
                 vel.y = m_CurrentVelocityY;
                 PostUpdate(vel, m_IsSprinting ? JumpSpeed / SprintJumpSpeed : 1);

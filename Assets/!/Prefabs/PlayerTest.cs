@@ -242,6 +242,6 @@ public class PlayerTest : MonoBehaviour
         ApplyPlanetRotation();
 
         //may move to seperate function
-       // rb.velocity = new Vector3(-moveDirection.x * moveSpeed, 0, -moveDirection.z * moveSpeed);
+       // rb.calculatedVelocity = new Vector3(-moveDirection.x * moveSpeed, 0, -moveDirection.z * moveSpeed);
     }
 }

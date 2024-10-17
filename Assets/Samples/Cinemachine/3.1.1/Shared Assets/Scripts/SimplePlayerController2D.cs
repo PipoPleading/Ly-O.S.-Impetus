@@ -43,7 +43,7 @@ namespace Unity.Cinemachine.Samples
             PreUpdate?.Invoke();
             var vel = m_Rigidbody2D.linearVelocity;
 
-            // Compute the new velocity and move the player, but only if not mid-jump
+            // Compute the new calculatedVelocity and move the player, but only if not mid-jump
             if (m_IsGrounded || MotionControlWhileInAir)
             {
                 // Read the input from the user

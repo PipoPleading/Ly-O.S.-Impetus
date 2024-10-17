@@ -48,7 +48,7 @@ namespace Unity.Cinemachine.Samples
             m_Controller = GetComponentInParent<SimplePlayerControllerBase>();
             if (m_Controller != null)
             {
-                // Install our callbacks to handle jump and animation based on velocity
+                // Install our callbacks to handle jump and animation based on calculatedVelocity
                 m_Controller.StartJump += () => OnJump(true);
                 m_Controller.EndJump += () => OnJump(false);
                 m_Controller.PostUpdate += (vel, jumpAnimationScale) => UpdateAnimation(vel, jumpAnimationScale);
@@ -65,7 +65,7 @@ namespace Unity.Cinemachine.Samples
             // We don't support jumping in this mode.
             if (m_Controller == null || !m_Controller.enabled)
             {
-                // Get velocity in player-local coords
+                // Get calculatedVelocity in player-local coords
                 var pos = transform.position;
                 var vel = Quaternion.Inverse(transform.rotation) * (pos - m_PreviousPosition) / Time.deltaTime;
                 m_PreviousPosition = pos;
@@ -81,10 +81,10 @@ namespace Unity.Cinemachine.Samples
         virtual protected void OnJump(bool jumping) => m_Animator.SetTrigger(jumping ? "Jump" : "Land");
         
         /// <summary>
-        /// Update the animation based on the player's velocity.
+        /// Update the animation based on the player's calculatedVelocity.
         /// Override this to interact appropriately with your animation controller.
         /// </summary>
-        /// <param name="vel">Player's velocity, in player-local coordinates.</param>
+        /// <param name="vel">Player's calculatedVelocity, in player-local coordinates.</param>
         /// <param name="jumpAnimationScale">Scale factor to apply to the jump animation.  
         /// It can be used to slow down the jump animation for longer jumps.</param>
         virtual protected void UpdateAnimation(Vector3 vel, float jumpAnimationScale)
