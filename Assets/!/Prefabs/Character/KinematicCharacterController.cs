@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using UnityEngine.TextCore.Text;
 using UnityEngine.Windows;
+
 
 
 [RequireComponent(typeof(Rigidbody))]
@@ -89,7 +91,7 @@ public class KinematicCharacterController : MonoBehaviour
     public bool IsBumpingHead { get; private set; }
 
     public bool IsSliding { get; private set; }
-    public bool IsOnSlope { get; private set; }
+    public bool isOnSlope { get; private set; }
     public float SlopeAngle { get; private set; }
     private Vector3 _slopeNormal;
 
@@ -137,6 +139,8 @@ public class KinematicCharacterController : MonoBehaviour
 
     private Vector3 overallDirection;
 
+    public Text text;
+
 
     void Awake()
     {
@@ -168,7 +172,7 @@ public class KinematicCharacterController : MonoBehaviour
         cam = GetComponent<Camera>();
 
         //player input reading, may put on a timer later for load screens and such idk
-        input.Player.Jump.performed += ctx => {
+/*        input.Player.Jump.performed += ctx => {
             jumpInput = true;
         };
         input.Player.Jump.canceled += ctx => {
@@ -179,7 +183,7 @@ public class KinematicCharacterController : MonoBehaviour
         };
         input.Player.Look.canceled += ctx => {
             lookDir = Vector2.zero;
-        };
+        };*/
 
     }
 
@@ -203,7 +207,8 @@ public class KinematicCharacterController : MonoBehaviour
                 sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
         #endif*/
 
-        moveDir = move.action.ReadValue<Vector2>();
+        //moveDir = move.action.ReadValue<Vector2>();
+
         overallDirection = new Vector3(moveDir.x, 0f, moveDir.y).normalized;
     }
 
@@ -231,10 +236,36 @@ public class KinematicCharacterController : MonoBehaviour
         }
     }
 
-    /// <summary>
+    void setDebugText()
+    {
+        text.text = $"FPS: {(1 / Time.deltaTime).ToString("F0")}\n" +
+                    $"deltaTime: {Time.deltaTime}\n" +
+        $"Timescale: {Time.timeScale}\n\n" +
+
+                    $"Gravity: {Gravity}\n" +
+                    $"Speed: {velocity.magnitude.ToString("f2")}\n" +
+                    //$"Acceleration: {controller.Acceleration().ToString("F4")}\n" +
+                    $"Velocity: {velocity.ToString("F6")}\n" +
+                    $"Position: {transform.position.ToString("F4")}\n" +
+                    $"LookDir: {cam.transform.eulerAngles.ToString("F4")}\n" +
+                    $"MoveDir: {dir.ToString("F4")}\n" +
+        $"Input: {moveDir}\n\n" +
+
+                    $"Grounded: {isGrounded}\n" +
+                    $"On Slope: {isOnSlope}\n" +
+                    $"Slope Angle: {SlopeAngle}\n" +
+                    $"Sliding: {IsSliding}\n" +
+                    $"Climbing Step: {isClimbingStep}\n\n" +
+
+                    $"Crouching: {isCrouching}\n" +
+        //$"Sprinting: {controller.motor.isSprinting}\n" +
+                    $"Try Jump: {jumpInput}\n" +
+                    $"Coyote: {Coyote}\n"
+        ;
+    }
+
     ///  Moves the attached rigidbody in the desired direction, taking into account gravity, collisions, and slopes, using
     ///  the "collide and slide" algorithm. Returns the current calculatedVelocity. (Pick either this or Move())
-    /// </summary>
     public Vector3 Move(Vector2 moveDir, bool shouldJump)
     {
         bounds = col.bounds;
@@ -264,7 +295,7 @@ public class KinematicCharacterController : MonoBehaviour
         }
 
         // scale movement to slope angle
-        if (isGrounded && IsOnSlope && !IsBumpingHead)
+        if (isGrounded && isOnSlope && !IsBumpingHead)
         {
             moveAmount = ProjectAndScale(moveAmount, _slopeNormal);
         }
@@ -483,7 +514,7 @@ public class KinematicCharacterController : MonoBehaviour
                 if (angle <= m_maxSlopeAngle)
                 {
                     IsSliding = false;
-                    IsOnSlope = angle > 0.1f;
+                    isOnSlope = angle > 0.1f;
                     grounded = true;
                     break;
                 }
@@ -572,11 +603,20 @@ public class KinematicCharacterController : MonoBehaviour
 
         //collide and slide
 
+        InputUsage();
+
         direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         direction.y = 0;
         direction.Normalize();
         dir = new Vector2(direction.x, direction.z);
 
         velocity = Move(dir, jumpInput);
+    }
+
+
+    private void InputUsage()
+    {
+        moveDir = UserInput.instance.moveInput;
+        jumpInput = UserInput.instance.jumpHeld;
     }
 }
