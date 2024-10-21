@@ -1,4 +1,4 @@
-using System.Collections;
+/*using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -20,7 +20,7 @@ public class PlayerTest : MonoBehaviour
     bool slowDown = false;
 
     //player controls
-    public PlayerInputActions playerControls;
+    //public PlayerInputActions playerControls;
     private InputAction jump;
     private InputAction movement;
     private InputAction look;
@@ -229,8 +229,8 @@ public class PlayerTest : MonoBehaviour
     void Update()
     {
         //moveDirection = new Vector3(movement.ReadValue<Vector2>().x, 0, movement.ReadValue<Vector2>().y);
-        /* float moveX = Input.GetAxis("Horizontal");
-         float moveZ = Input.GetAxis("Vertical");*/
+        *//* float moveX = Input.GetAxis("Horizontal");
+         float moveZ = Input.GetAxis("Vertical");*//*
     }
 
    
@@ -245,3 +245,4 @@ public class PlayerTest : MonoBehaviour
        // rb.calculatedVelocity = new Vector3(-moveDirection.x * moveSpeed, 0, -moveDirection.z * moveSpeed);
     }
 }
+*/

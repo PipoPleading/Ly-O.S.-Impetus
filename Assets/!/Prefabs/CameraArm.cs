@@ -1,4 +1,4 @@
-using System.Collections;
+/*using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,11 +6,11 @@ public class CameraArm : MonoBehaviour
 {
     public float verticalClamp = 30f;
     public Vector2 sensitivity = Vector2.one;
-    PlayerInputActions playerControls;
+    //PlayerInputActions playerControls;
 
     private void Awake()
     {
-        playerControls = new PlayerInputActions();
+        //playerControls = new PlayerInputActions();
     }
 
     private void OnEnable()
@@ -48,3 +48,4 @@ public class CameraArm : MonoBehaviour
                 0));
     }
 }
+*/

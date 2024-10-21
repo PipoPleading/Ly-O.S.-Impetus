@@ -7,8 +7,6 @@ using UnityEngine.UI;
 using UnityEngine.TextCore.Text;
 using UnityEngine.Windows;
 
-
-
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(GravityBody))]
 [RequireComponent(typeof(CapsuleCollider))]
@@ -18,12 +16,13 @@ public class KinematicCharacterController : MonoBehaviour
 
     //[Header("Controls")]
     [SerializeField]
-    InputActionReference move, look, spring;
+    //InputActionReference move, look, spring;
     //axis from player input
     private Vector2 moveDir;
     private Vector2 lookDir;
-    PlayerInputActions input;
+    //PlayerInputActions input;
     bool jumpInput;
+    bool dashInput;
 
     [Header("Movement")]
 
@@ -111,7 +110,7 @@ public class KinematicCharacterController : MonoBehaviour
     //lowkey need to elaborate on
     private Vector3 gravityVector;
     public bool Coyote { get; private set; }
-    private bool jumping;
+    private bool jumping, dashing;
     private float jumpForce;
 
     private Rigidbody rb;
@@ -145,7 +144,7 @@ public class KinematicCharacterController : MonoBehaviour
     void Awake()
     {
         //component initializations so i have to do less stuff per scene
-        input = new PlayerInputActions();
+        //input = new PlayerInputActions();
 
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
@@ -189,7 +188,7 @@ public class KinematicCharacterController : MonoBehaviour
 
     private void Start()
     {
-        rb = transform.GetComponent<Rigidbody>();
+        //rb = transform.GetComponent<Rigidbody>();
 
         //cursor
         Cursor.lockState = CursorLockMode.Locked;
@@ -208,6 +207,7 @@ public class KinematicCharacterController : MonoBehaviour
         #endif*/
 
         //moveDir = move.action.ReadValue<Vector2>();
+        InputUsage();
 
         overallDirection = new Vector3(moveDir.x, 0f, moveDir.y).normalized;
     }
@@ -266,7 +266,7 @@ public class KinematicCharacterController : MonoBehaviour
 
     ///  Moves the attached rigidbody in the desired direction, taking into account gravity, collisions, and slopes, using
     ///  the "collide and slide" algorithm. Returns the current calculatedVelocity. (Pick either this or Move())
-    public Vector3 Move(Vector2 moveDir, bool shouldJump)
+    public Vector3 Move(Vector2 moveDir, bool shouldJump, bool shouldDash)
     {
         bounds = col.bounds;
         bounds.Expand(-2 * m_skinWidth);
@@ -283,10 +283,7 @@ public class KinematicCharacterController : MonoBehaviour
         isGrounded = GroundCheck(transform.position);
         LandedThisFrame = isGrounded && !wasGrounded;
 
-        if(LandedThisFrame)
-        {
-            //bunnyhop anim for state machine
-        }
+
 
         // coyote time
         if (wasGrounded && !isGrounded)
@@ -310,8 +307,18 @@ public class KinematicCharacterController : MonoBehaviour
         {
             //need to introduce gravity body code here
             jumping = false;
+            //jump code
             if (shouldJump && (isGrounded || Coyote))
             {
+                if (LandedThisFrame)
+                {
+                    //bunnyhop anim for state machine
+                }
+
+                if (shouldDash)
+                {
+
+                }
                 gravityVector.y = jumpForce * Time.deltaTime;
                 jumping = true;
                 Coyote = false;
@@ -473,6 +480,7 @@ public class KinematicCharacterController : MonoBehaviour
     private Vector3 SnapToGround(Vector3 pos)
     {
         float dist = m_maxStepHeight + m_skinWidth;
+        //casting
         if (Physics.CapsuleCast(
             pos + sphereOffsetBottom,
             pos + sphereOffsetTop,
@@ -480,8 +488,9 @@ public class KinematicCharacterController : MonoBehaviour
             Vector3.down,
             out RaycastHit hit,
             dist,
-            m_collisionMask
-        ))
+            m_collisionMask)
+        )
+        //on hit
         {
             float surfaceAngle = Vector3.Angle(hit.normal, Vector3.up);
             if (hit.distance - m_skinWidth < m_maxStepHeight && surfaceAngle <= m_maxSlopeAngle)
@@ -490,6 +499,7 @@ public class KinematicCharacterController : MonoBehaviour
                 return new Vector3(0, -(hit.distance - m_skinWidth), 0);
             }
         }
+        //else
         return Vector3.zero;
     }
 
@@ -571,6 +581,7 @@ public class KinematicCharacterController : MonoBehaviour
 
     private Vector3 AccelScaling(Vector3 wishDir)
     {
+        //snaps to 0 the frame a movement key is no longer held, need to fix with container variable?
         Vector3 v = wishDir * walkSpeed;
         if (isRunning) { v = v * runSpeed; }
         if (isSpriting) {  v = v * sprintSpeed; }
@@ -580,12 +591,12 @@ public class KinematicCharacterController : MonoBehaviour
 
     void OnEnable()
     {
-        input.Enable();
+        //input.Enable();
     }
 
     void OnDisable()
     {
-        input.Disable();
+        //input.Disable();
     }
 
     private void FixedUpdate()
@@ -603,14 +614,13 @@ public class KinematicCharacterController : MonoBehaviour
 
         //collide and slide
 
-        InputUsage();
 
         direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         direction.y = 0;
         direction.Normalize();
         dir = new Vector2(direction.x, direction.z);
 
-        velocity = Move(dir, jumpInput);
+        velocity = Move(dir, jumpInput, dashInput);
     }
 
 
@@ -618,5 +628,6 @@ public class KinematicCharacterController : MonoBehaviour
     {
         moveDir = UserInput.instance.moveInput;
         jumpInput = UserInput.instance.jumpHeld;
+        dashInput = UserInput.instance.dashPressed;
     }
 }

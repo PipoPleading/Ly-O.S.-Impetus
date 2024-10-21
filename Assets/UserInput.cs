@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+
 public class UserInput : MonoBehaviour
 {
     public static UserInput instance;
@@ -16,6 +17,7 @@ public class UserInput : MonoBehaviour
     public bool dashPressed;
 
     public bool pausePressed;
+    public bool pauseHeld;
 
     private PlayerInput playerInput;
 
@@ -57,6 +59,7 @@ public class UserInput : MonoBehaviour
         dashPressed = dashAction.WasPressedThisFrame(); 
 
         pausePressed = pauseAction.WasPressedThisFrame();
+        pauseHeld = pauseAction.IsPressed();
 
     }
 }
