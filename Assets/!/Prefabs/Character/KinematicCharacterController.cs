@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.TextCore.Text;
 using UnityEngine.Windows;
+using Unity.VisualScripting;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(GravityBody))]
@@ -23,6 +24,7 @@ public class KinematicCharacterController : MonoBehaviour
     //PlayerInputActions input;
     bool jumpInput;
     bool dashInput;
+    bool aimInput;
 
     [Header("Movement")]
 
@@ -78,6 +80,7 @@ public class KinematicCharacterController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool SHOW_DEBUG = false;
 
+    public float playerTimeScale = 1f;
 
     private Vector3 moveAmount;
     private Vector3 calculatedVelocity;
@@ -116,7 +119,7 @@ public class KinematicCharacterController : MonoBehaviour
     private Rigidbody rb;
     private GravityBody gb;
     private CapsuleCollider col;
-    private Camera cam;
+    private Transform cam;
 
     //temp var holding the collider's boundaries
     private Bounds bounds;
@@ -168,7 +171,7 @@ public class KinematicCharacterController : MonoBehaviour
 
         hitPoints = new List<RaycastHit>();
 
-        cam = GetComponent<Camera>();
+        cam = GetComponent<Transform>();
 
         //player input reading, may put on a timer later for load screens and such idk
 /*        input.Player.Jump.performed += ctx => {
@@ -266,7 +269,7 @@ public class KinematicCharacterController : MonoBehaviour
 
     ///  Moves the attached rigidbody in the desired direction, taking into account gravity, collisions, and slopes, using
     ///  the "collide and slide" algorithm. Returns the current calculatedVelocity. (Pick either this or Move())
-    public Vector3 Move(Vector2 moveDir, bool shouldJump, bool shouldDash)
+    public Vector3 Move(Vector2 moveDir, bool shouldJump, bool shouldDash, bool shouldAim)
     {
         bounds = col.bounds;
         bounds.Expand(-2 * m_skinWidth);
@@ -317,11 +320,23 @@ public class KinematicCharacterController : MonoBehaviour
 
                 if (shouldDash)
                 {
-
+                    //super dash here
                 }
                 gravityVector.y = jumpForce * Time.deltaTime;
                 jumping = true;
                 Coyote = false;
+
+
+
+            }
+
+            if (shouldAim && !isGrounded)
+            {
+                BulletTime();
+            }
+            else
+            {
+                StandardTime();
             }
 
             if ((isGrounded || wasGrounded) && !jumping)
@@ -615,19 +630,35 @@ public class KinematicCharacterController : MonoBehaviour
         //collide and slide
 
 
-        direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
+        direction = (cam.forward * moveDir.y + cam.right * moveDir.x);
+        //direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         direction.y = 0;
         direction.Normalize();
         dir = new Vector2(direction.x, direction.z);
 
-        velocity = Move(dir, jumpInput, dashInput);
+        velocity = Move(dir, jumpInput, dashInput, aimInput);
+
+
     }
 
+    private void BulletTime()
+    {
+        //lerps between standard and bullet time
+        playerTimeScale = Mathf.Lerp(0.2f, 1, 0);
+        Time.timeScale = playerTimeScale;
+    }
+
+    private void StandardTime()
+    {
+        playerTimeScale = Mathf.Lerp(0.2f, 1, 1);
+        Time.timeScale = playerTimeScale;
+    }
 
     private void InputUsage()
     {
         moveDir = UserInput.instance.moveInput;
         jumpInput = UserInput.instance.jumpHeld;
         dashInput = UserInput.instance.dashPressed;
+        aimInput = UserInput.instance.aimHeld;
     }
 }

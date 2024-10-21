@@ -86,7 +86,7 @@ public class PlayerController : MonoBehaviour
         direction.Normalize();
         dir = new Vector2(direction.x, direction.z);
         // dir = new Vector2(0, -1).normalized;
-        velocity = controller.Move(dir, canJump, true);
+        velocity = controller.Move(dir, canJump, true, true);
 
 
     }

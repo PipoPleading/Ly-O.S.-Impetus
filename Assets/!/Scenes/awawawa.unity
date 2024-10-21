@@ -2530,7 +2530,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ScanRecursively: 1
   SuppressInputWhileBlending: 1
-  IgnoreTimeScale: 0
+  IgnoreTimeScale: 1
   m_ControllerManager:
     Controllers:
     - Name: Look Orbit X
@@ -4240,6 +4240,7 @@ MonoBehaviour:
   m_jumpDistance: 4
   m_coyoteTime: 0.2
   SHOW_DEBUG: 0
+  playerTimeScale: 1
   walkSpeed: 5
   runSpeed: 2
   sprintSpeed: 2
@@ -8727,6 +8728,7 @@ MonoBehaviour:
   menuFirst: {fileID: 679945266}
   settingsFirst: {fileID: 823529383}
   keyboardFirst: {fileID: 56424153}
+  player: {fileID: 0}
 --- !u!1 &1191134633 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -6124313814444684632, guid: 62f002859c8790e4bb53415cf62c933d, type: 3}
@@ -9539,6 +9541,7 @@ MonoBehaviour:
   dashPressed: 0
   pausePressed: 0
   pauseHeld: 0
+  aimHeld: 0
 --- !u!114 &1350095554
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -11,6 +11,8 @@ public class MenuManager : MonoBehaviour
     [SerializeField] private GameObject menuFirst;
     [SerializeField] private GameObject settingsFirst;
     [SerializeField] private GameObject keyboardFirst;
+
+    [SerializeField] private KinematicCharacterController player;
     //[SerializeField] private GameObject mainMenuFirst;
 
     private bool isPaused;
@@ -55,7 +57,7 @@ public class MenuManager : MonoBehaviour
     public void Unpause()
     {
         isPaused = false;
-        Time.timeScale = 1f;
+        Time.timeScale = player.playerTimeScale;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
