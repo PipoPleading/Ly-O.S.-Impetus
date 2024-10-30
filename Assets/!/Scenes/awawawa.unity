@@ -9792,6 +9792,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: miku
       objectReference: {fileID: 0}
+    - target: {fileID: 1094375515582058216, guid: 7d4b92564bf38b046bf78a1cf58c7d94, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
