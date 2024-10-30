@@ -68,13 +68,13 @@ public class KinematicCharacterController : MonoBehaviour
     [Header("Jump")]
 
     [Tooltip("The height the controller can jump. Determines gravity along with jumpDistance.")]
-    [SerializeField] private float m_jumpHeight = 2;
+    [SerializeField] private float m_jumpHeight = 4;
 
     [Tooltip("The distance the controller can jump when moving at max speed. Determines gravity along with jumpHeight.")]
     [SerializeField] private float m_jumpDistance = 4;
 
     [Tooltip("How long (in seconds) after you leave the ground can you still jump.")]
-    [SerializeField] private float m_coyoteTime = 0.2f;
+    [SerializeField] private float m_coyoteTime = 0.15f;
 
 
     [Header("Debug")]
