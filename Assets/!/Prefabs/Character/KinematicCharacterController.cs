@@ -631,6 +631,7 @@ public class KinematicCharacterController : MonoBehaviour
         print("Cam right:" + cam.transform.right);*/
         direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         //direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
+        //potentially could cause problems with gravity rotation
         direction.y = 0;
         direction.Normalize();
         dir = new Vector2(direction.x, direction.z);
