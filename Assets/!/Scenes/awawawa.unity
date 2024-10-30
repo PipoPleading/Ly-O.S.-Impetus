@@ -3185,7 +3185,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TargetOffset: {x: 0, y: 0, z: 0}
   TrackerSettings:
-    BindingMode: 5
+    BindingMode: 1
     PositionDamping: {x: 1, y: 1, z: 1}
     AngularDampingMode: 0
     RotationDamping: {x: 1, y: 1, z: 1}
@@ -3201,9 +3201,9 @@ MonoBehaviour:
       Height: 2.25
     Bottom:
       Radius: 2.5
-      Height: 0.1
+      Height: -1.46
     SplineCurvature: 0.5
-  RecenteringTarget: 2
+  RecenteringTarget: 0
   HorizontalAxis:
     Value: 0
     Center: 0
@@ -4768,7 +4768,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd7b6f06a2cecd34289d488386ceca9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gravityForce: 800
+  gravityForce: 0
 --- !u!114 &553353609
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4799,6 +4799,7 @@ MonoBehaviour:
   m_coyoteTime: 0.2
   SHOW_DEBUG: 0
   playerTimeScale: 1
+  cam: {fileID: 259527524}
   walkSpeed: 5
   runSpeed: 2
   sprintSpeed: 2

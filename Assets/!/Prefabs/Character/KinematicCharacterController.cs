@@ -11,7 +11,7 @@ using Unity.VisualScripting;
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(GravityBody))]
 [RequireComponent(typeof(CapsuleCollider))]
-[RequireComponent(typeof(Camera))]
+//[RequireComponent(typeof(Camera))]
 public class KinematicCharacterController : MonoBehaviour
 {
 
@@ -119,7 +119,7 @@ public class KinematicCharacterController : MonoBehaviour
     private Rigidbody rb;
     private GravityBody gb;
     private CapsuleCollider col;
-    private Transform cam;
+    [SerializeField] Transform cam;
 
     //temp var holding the collider's boundaries
     private Bounds bounds;
@@ -170,8 +170,6 @@ public class KinematicCharacterController : MonoBehaviour
         sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
 
         hitPoints = new List<RaycastHit>();
-
-        cam = GetComponent<Transform>();
 
         //player input reading, may put on a timer later for load screens and such idk
 /*        input.Player.Jump.performed += ctx => {
@@ -628,9 +626,10 @@ public class KinematicCharacterController : MonoBehaviour
         rb.MoveRotation(newRotation);*/
 
         //collide and slide
-
-
-        direction = (cam.forward * moveDir.y + cam.right * moveDir.x);
+/*
+        print("Cam forward:" + cam.transform.forward);
+        print("Cam right:" + cam.transform.right);*/
+        direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         //direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         direction.y = 0;
         direction.Normalize();
@@ -657,7 +656,7 @@ public class KinematicCharacterController : MonoBehaviour
     private void InputUsage()
     {
         moveDir = UserInput.instance.moveInput;
-        lookDir = UserInput.instance.lookInput;
+        //lookDir = UserInput.instance.lookInput;
         jumpInput = UserInput.instance.jumpHeld;
         dashInput = UserInput.instance.dashPressed;
         aimInput = UserInput.instance.aimHeld;
