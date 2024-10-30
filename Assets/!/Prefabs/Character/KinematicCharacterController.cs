@@ -657,6 +657,7 @@ public class KinematicCharacterController : MonoBehaviour
     private void InputUsage()
     {
         moveDir = UserInput.instance.moveInput;
+        lookDir = UserInput.instance.lookInput;
         jumpInput = UserInput.instance.jumpHeld;
         dashInput = UserInput.instance.dashPressed;
         aimInput = UserInput.instance.aimHeld;
