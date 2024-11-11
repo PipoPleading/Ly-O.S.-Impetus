@@ -20,10 +20,13 @@ public class UserInput : MonoBehaviour
     public bool pauseHeld;
 
     public bool aimHeld;
+    public bool aimReleased;
+
+    public bool shootPressed;
 
     private PlayerInput playerInput;
 
-    private InputAction moveAction, lookAction, jumpAction, dashAction, pauseAction, aimAction;
+    private InputAction moveAction, lookAction, jumpAction, dashAction, pauseAction, aimAction, shootAction;
 
     public void Awake()
     {
@@ -48,6 +51,7 @@ public class UserInput : MonoBehaviour
         dashAction = playerInput.actions["Dash"];
         pauseAction = playerInput.actions["Pause"];
         aimAction = playerInput.actions["Aim"];
+        shootAction = playerInput.actions["Shoot"];
     }
 
     private void UpdateInputs()
@@ -65,6 +69,9 @@ public class UserInput : MonoBehaviour
         pauseHeld = pauseAction.IsPressed();
 
         aimHeld = aimAction.IsPressed();
+        aimReleased = aimAction.WasReleasedThisFrame();
+
+        shootPressed = shootAction.IsPressed();
 
     }
 }

@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using UnityEngine;
 //using static Unity.Cinemachine.InputAxisControllerBase<T>;
 //using static Unity.Cinemachine.InputAxisControllerBase<T>;
@@ -25,8 +25,8 @@ public class PlayerController : MonoBehaviour
     Vector2 dir;
     public float _turnSpeed = 1500f;
 
-/*    PlayerInputActions input;
-*/
+*//*    PlayerInputActions input;
+*//*
     [SerializeField]
     InputActionReference move, look, spring;
     //kinematic base class containing collide and slide stuff
@@ -70,14 +70,14 @@ public class PlayerController : MonoBehaviour
     {
         //omnidirectional gravity
         Vector3 direction;
-/*        bool isMoving = overallDirection.magnitude > 0.1f;
+*//*        bool isMoving = overallDirection.magnitude > 0.1f;
 
         direction = transform.forward * overallDirection.z;
         rb.MovePosition(rb.position + direction * (_speed * Time.fixedDeltaTime));
 
         Quaternion rightDirection = Quaternion.Euler(0f, overallDirection.x * (_turnSpeed * Time.fixedDeltaTime), 0f);
         Quaternion newRotation = Quaternion.Slerp(rb.rotation, rb.rotation * rightDirection, Time.fixedDeltaTime * 3f); ;
-        rb.MoveRotation(newRotation);*/
+        rb.MoveRotation(newRotation);*//*
 
         //collide and slide
 
@@ -86,7 +86,7 @@ public class PlayerController : MonoBehaviour
         direction.Normalize();
         dir = new Vector2(direction.x, direction.z);
         // dir = new Vector2(0, -1).normalized;
-        velocity = controller.Move(dir, canJump, true, true);
+        velocity = controller.Move(dir, canJump, true);
 
 
     }
@@ -113,3 +113,4 @@ public class PlayerController : MonoBehaviour
         canJump = true;
     }
 }
+*/

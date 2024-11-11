@@ -7,6 +7,8 @@ using UnityEngine.UI;
 using UnityEngine.TextCore.Text;
 using UnityEngine.Windows;
 using Unity.VisualScripting;
+using Unity.Cinemachine;
+using System;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(GravityBody))]
@@ -21,10 +23,65 @@ public class KinematicCharacterController : MonoBehaviour
     //axis from player input
     private Vector2 moveDir;
     private Vector2 lookDir;
+
+    [Header("Grappling")]
+    public bool freeze;
+
+    public float grappleMax;
+    public float grappleDelay;
+    public float overShootY;
+
+    public LayerMask grappleable;
+
+    private Vector3 grapplePoint;
+
+    public Transform armTip;
+    public LineRenderer lr;
+
+    public float grapplingCd;
+    public float grapplingCdTimer;
+    public bool grappling;
+    public bool activeGrapple;
+
     //PlayerInputActions input;
-    bool jumpInput;
-    bool dashInput;
-    bool aimInput;
+    [Header("Inputs")]
+    public bool jumpInput;
+    public bool dashInput;
+    public bool aimInput;
+    public bool shootInput;
+    public bool aimRelease;
+
+    [Header("Camera")]
+    public CameraStyle currentStyle;
+
+    public enum CameraStyle
+    {
+        Normal,
+        Aim,
+        Other
+    }
+
+    [Header("Dash")]
+    //dash stuff
+    public float desiredMoveSp;
+    public float lastDesiredMoveSp;
+    public bool keepMomentum;
+
+    public float dashForce;
+    public float dashVerticalForce;
+    public float dashDuration;
+
+    public float dashCd;
+    public float dashCdTimer;
+    public Vector3 forceToApply;
+
+    //camera switching
+    public CinemachineCamera normalCam;
+    public CinemachineCamera aimCam;
+    public CinemachineCamera otherCam;
+
+    //the most important guy for some reason
+    Vector3 direction;
 
     [Header("Movement")]
 
@@ -36,11 +93,6 @@ public class KinematicCharacterController : MonoBehaviour
 
     [Tooltip("The max speed above which falling speed will be capped.")]
     [SerializeField] private float m_maxFallSpeed = 20;
-
-    [Tooltip("The default maximum movement speed (can be overridden by character motors).")]
-    [field: SerializeField] public float maxSpeed { get; private set; } = 5;
-
-
 
     [Header("Collision")]
 
@@ -64,6 +116,9 @@ public class KinematicCharacterController : MonoBehaviour
     [Tooltip("The minimum depth for steps that the controller can climb.")]
     [SerializeField] private float m_minStepDepth = 0.1f;
 
+    [Tooltip("Scalar for speed, affects things like jump height etc.")]
+    [SerializeField] private float speedScalar = 5;
+
 
     [Header("Jump")]
 
@@ -86,6 +141,7 @@ public class KinematicCharacterController : MonoBehaviour
     private Vector3 calculatedVelocity;
     private Vector3 velocity;
     private Vector3 groundSpeed;
+    private Vector3 dashSpeed;
 
     public bool isGrounded { get; private set; }
     private bool wasGrounded;
@@ -113,13 +169,14 @@ public class KinematicCharacterController : MonoBehaviour
     //lowkey need to elaborate on
     private Vector3 gravityVector;
     public bool Coyote { get; private set; }
-    private bool jumping, dashing;
+    public bool jumping, dashing;
     private float jumpForce;
 
     private Rigidbody rb;
     private GravityBody gb;
     private CapsuleCollider col;
     [SerializeField] Transform cam;
+
 
     //temp var holding the collider's boundaries
     private Bounds bounds;
@@ -139,7 +196,14 @@ public class KinematicCharacterController : MonoBehaviour
     //final movement vector
     private Vector2 dir;
 
-    private Vector3 overallDirection;
+    //used to be overallDirection
+    public Transform orientation;
+    public Transform player;
+    public Transform playerObj;
+    public Transform aimTransform;
+
+
+    public float rotationSpeed;
 
     public Text text;
 
@@ -162,9 +226,9 @@ public class KinematicCharacterController : MonoBehaviour
         height = col.height;
 
         float halfDist = m_jumpDistance / 2;
-        Gravity = (-2 * m_jumpHeight * maxSpeed * maxSpeed) / (halfDist * halfDist);
+        Gravity = (-2 * m_jumpHeight * speedScalar * speedScalar) / (halfDist * halfDist);
         Debug.Log("Gravity: " + Gravity);
-        jumpForce = (2 * m_jumpHeight * maxSpeed) / halfDist;
+        jumpForce = (2 * m_jumpHeight * speedScalar) / halfDist;
 
         sphereOffsetBottom = new Vector3(0, col.radius, 0);
         sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
@@ -194,23 +258,6 @@ public class KinematicCharacterController : MonoBehaviour
         //cursor
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-    }
-
-    void Update()
-    {
-        /*#if UNITY_EDITOR
-                float halfDist = m_jumpDistance / 2;
-                Gravity = (-2 * m_jumpHeight * maxSpeed * maxSpeed) / (halfDist * halfDist);
-                jumpForce = (2 * m_jumpHeight * maxSpeed) / halfDist;
-
-                sphereOffsetBottom = new Vector3(0, col.radius, 0);
-                sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
-        #endif*/
-
-        //moveDir = move.action.ReadValue<Vector2>();
-        InputUsage();
-
-        overallDirection = new Vector3(moveDir.x, 0f, moveDir.y).normalized;
     }
 
     void OnDrawGizmos()
@@ -267,8 +314,10 @@ public class KinematicCharacterController : MonoBehaviour
 
     ///  Moves the attached rigidbody in the desired direction, taking into account gravity, collisions, and slopes, using
     ///  the "collide and slide" algorithm. Returns the current calculatedVelocity. (Pick either this or Move())
-    public Vector3 Move(Vector2 moveDir, bool shouldJump, bool shouldDash, bool shouldAim)
+    public Vector3 Move(Vector2 moveDir, bool shouldJump, bool shouldDash)
     {
+        //if (activeGrapple) return;
+
         bounds = col.bounds;
         bounds.Expand(-2 * m_skinWidth);
 
@@ -277,8 +326,15 @@ public class KinematicCharacterController : MonoBehaviour
 
         //seperating from motorinstance & iplayerengine for optimization
         groundSpeed = AccelScaling(new Vector3(moveDir.x, 0, moveDir.y));
+        dashSpeed = AccelScaling(new Vector3(moveDir.x + forceToApply.x, 0, moveDir.y + forceToApply.z));
 
-        moveAmount = groundSpeed * Time.deltaTime;
+
+
+        if(!dashing) moveAmount = groundSpeed * Time.deltaTime;
+        else
+        {
+            moveAmount = dashSpeed * Time.deltaTime;
+        }
 
         IsBumpingHead = CeilingCheck(transform.position);
         isGrounded = GroundCheck(transform.position);
@@ -328,28 +384,28 @@ public class KinematicCharacterController : MonoBehaviour
 
             }
 
-            if (shouldAim && !isGrounded)
-            {
-                BulletTime();
-            }
-            else
-            {
-                StandardTime();
-            }
 
-            if ((isGrounded || wasGrounded) && !jumping)
+            if ((isGrounded || wasGrounded) && !jumping && !activeGrapple)
             {
                 moveAmount += SnapToGround(transform.position + moveAmount);
             }
 
+/*            if(dashing)
+            {
+                moveAmount += forceToApply * Time.deltaTime;
+            }*/
+
             if ((isGrounded && !jumping) || (!isGrounded && IsBumpingHead))
             {
+                //need to put old gravity code here
                 gravityVector = new Vector3(0, Gravity, 0) * Time.deltaTime * Time.deltaTime;
             }
             else if (gravityVector.y > -m_maxFallSpeed)
             {
                 gravityVector.y += Gravity * Time.deltaTime * Time.deltaTime;
             }
+
+
 
             moveAmount += CollideAndSlide(gravityVector, transform.position + moveAmount, true);
         }
@@ -360,6 +416,27 @@ public class KinematicCharacterController : MonoBehaviour
         wasGrounded = isGrounded;
         calculatedVelocity = moveAmount / Time.deltaTime;
         return calculatedVelocity;
+    }
+
+    private void Dash()
+    {
+        dashing = true; 
+        forceToApply = orientation.forward * dashForce + orientation.up * dashVerticalForce;
+
+       
+        //addforce to movement
+        //rb.AddForce(forceToApply, ForceMode.Impulse);
+
+        Debug.Log("dash");
+        Debug.Log(forceToApply.magnitude);
+
+        Invoke(nameof(ResetDash), dashDuration);
+    }
+
+    private void ResetDash()
+    {
+        dashing = false;
+
     }
 
     IEnumerator CoyoteTime()
@@ -612,10 +689,79 @@ public class KinematicCharacterController : MonoBehaviour
         //input.Disable();
     }
 
+    void Update()
+    {
+        /*#if UNITY_EDITOR
+                float halfDist = m_jumpDistance / 2;
+                Gravity = (-2 * m_jumpHeight * maxSpeed * maxSpeed) / (halfDist * halfDist);
+                jumpForce = (2 * m_jumpHeight * maxSpeed) / halfDist;
+
+                sphereOffsetBottom = new Vector3(0, col.radius, 0);
+                sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
+        #endif*/
+
+        InputUsage();
+
+        if(grapplingCdTimer > 0)
+            grapplingCdTimer -= Time.deltaTime;
+
+        if(aimInput) SwitchCameraStyle(CameraStyle.Aim);
+        else SwitchCameraStyle(CameraStyle.Normal);
+
+        if (!isGrounded && aimInput)
+        {
+            BulletTime();
+        }
+        else
+        {
+            StandardTime();
+        }
+
+        if (dashInput && !dashing)
+        {
+            Dash();
+        }
+
+        if(shootInput)
+        {
+            StartGrapple();
+        }
+        //physics 
+        //direction = (orientation.forward * moveDir.y + orientation.right * moveDir.x);
+        direction = (cam.forward * moveDir.y + cam.right * moveDir.x);
+        direction.y = 0;
+        direction.Normalize();
+
+        //gets input into collide & slide every fixedupdate
+
+        //rotate orientation
+        //Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
+        if(direction!= Vector3.zero) orientation.forward = direction;
+
+        //rotate player object (ly-os <3)
+        if (currentStyle == CameraStyle.Normal)
+        {
+            Vector3 inputDir = orientation.forward * lookDir.y + orientation.right * lookDir.x;
+
+            if (moveDir != Vector2.zero)
+            {
+                playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
+            }
+        }
+        else if (currentStyle == CameraStyle.Aim)
+        {
+            Vector3 aimLook = aimTransform.position - new Vector3(direction.x, aimTransform.position.y, direction.z); ;
+            orientation.forward = direction;
+
+            playerObj.forward = direction;
+        }
+
+        //overallDirection = new Vector3(moveDir.x, 0f, moveDir.y).normalized;
+    }
     private void FixedUpdate()
     {
         //omnidirectional gravity
-        Vector3 direction;/*
+        /*
         bool isMoving = overallDirection.magnitude > 0.1f;
 
         direction = transform.forward * overallDirection.z;
@@ -625,18 +771,23 @@ public class KinematicCharacterController : MonoBehaviour
         Quaternion newRotation = Quaternion.Slerp(rb.rotation, rb.rotation * rightDirection, Time.fixedDeltaTime * 3f); ;
         rb.MoveRotation(newRotation);*/
 
+
+
         //collide and slide
-/*
-        print("Cam forward:" + cam.transform.forward);
-        print("Cam right:" + cam.transform.right);*/
-        direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
+        /*
+                print("Cam forward:" + cam.transform.forward);
+                print("Cam right:" + cam.transform.right);*/
         //direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         //potentially could cause problems with gravity rotation
-        direction.y = 0;
-        direction.Normalize();
+
+        //for movement only
+
+
+
+
         dir = new Vector2(direction.x, direction.z);
 
-        velocity = Move(dir, jumpInput, dashInput, aimInput);
+        velocity = Move(dir, jumpInput, dashInput);
 
 
     }
@@ -654,12 +805,116 @@ public class KinematicCharacterController : MonoBehaviour
         Time.timeScale = playerTimeScale;
     }
 
+    private void StartGrapple()
+    {
+        if (grapplingCdTimer > 0) return;
+
+        grappling = true;
+
+        m_useGravity = false;
+
+        RaycastHit hit;
+        if (Physics.Raycast(cam.position, cam.forward, out hit, grappleMax, grappleable))
+        {
+            grapplePoint = hit.point;
+
+            Invoke(nameof(ExecuteGrapple), grappleDelay);
+        }
+        else
+        {
+            grapplePoint = cam.position + cam.forward * grappleMax;
+
+            Invoke(nameof(StopGrapple), grappleDelay);
+
+        }
+
+        lr.enabled = true;
+        lr.SetPosition(1, grapplePoint);
+    }
+
+    private void LateUpdate()
+    {
+        if(grappling)
+            lr.SetPosition(0, armTip.position);
+    }
+
+    private void ExecuteGrapple()
+    {
+        freeze = false;
+
+        Vector3 lowest = new Vector3(transform.position.x, transform.position.y - 1f, transform.position.z);
+
+        float grappleRelativeY = grapplePoint.y - lowest.y;
+        float arcHeight = grappleRelativeY + overShootY;
+
+        if (grappleRelativeY < 0) arcHeight = overShootY;
+
+        MoveToPosition(grapplePoint,arcHeight);
+
+        Invoke(nameof(StopGrapple), 1f);
+
+    }
+
+    private Vector3 velocityToSet;
+    public void MoveToPosition(Vector3 targetPos, float trajectoryHeight)
+    {
+        activeGrapple = true;
+
+        forceToApply = CalculateJumpVelocity(transform.position, targetPos, trajectoryHeight);
+        Invoke(nameof(SetVelocity), 0.1f);
+    }
+
+    private void SetVelocity()
+    {
+        velocity = velocityToSet;
+    }
+
+    private void StopGrapple()
+    {
+        grappling = false;
+
+        grapplingCdTimer = grapplingCd;
+
+        lr.enabled = false; 
+
+        m_useGravity = true;    
+    }
+
     private void InputUsage()
     {
         moveDir = UserInput.instance.moveInput;
-        //lookDir = UserInput.instance.lookInput;
+        lookDir = UserInput.instance.lookInput;
         jumpInput = UserInput.instance.jumpHeld;
         dashInput = UserInput.instance.dashPressed;
         aimInput = UserInput.instance.aimHeld;
+        shootInput = UserInput.instance.shootPressed;
+        aimRelease = UserInput.instance.aimReleased;
     }
+
+    public Vector3 CalculateJumpVelocity(Vector3 startPoint, Vector3 endPoint, float trajectoryHeight)
+    {
+        float displacementY = endPoint.y - startPoint.y;
+
+        Vector3 displacementXZ = new Vector3(endPoint.x - startPoint.x, 0 , endPoint.z - startPoint.z);
+
+        Vector3 velocityY = Vector3.up * Mathf.Sqrt(-2 * Gravity *  trajectoryHeight);
+        Vector3 velocityXZ = displacementXZ / (Mathf.Sqrt(-2 * trajectoryHeight / Gravity)
+            + Mathf.Sqrt(2 * (displacementY - trajectoryHeight) / Gravity));
+
+        return velocityXZ + velocityY;
+    }
+
+    private void SwitchCameraStyle(CameraStyle newStyle)
+    {
+        normalCam.Priority.Value = 0;
+        aimCam.Priority.Value = 0;
+        otherCam.Priority.Value = 0;
+        
+        if (currentStyle == CameraStyle.Normal) normalCam.Priority.Value = 1;
+        if (currentStyle == CameraStyle.Aim) aimCam.Priority.Value = 1;
+        if (currentStyle == CameraStyle.Other) otherCam.Priority.Value = 1;
+
+        currentStyle = newStyle;
+    }
+
 }
