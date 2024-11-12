@@ -67,6 +67,9 @@ public class KinematicCharacterController : MonoBehaviour
     public float lastDesiredMoveSp;
     public bool keepMomentum;
 
+    public bool superDash;
+    public float superDashScalar = 1.10f;
+
     public float dashForce;
     public float dashVerticalForce;
     public float dashDuration;
@@ -84,51 +87,35 @@ public class KinematicCharacterController : MonoBehaviour
     Vector3 direction;
 
     [Header("Movement")]
-
-    [Tooltip("The height of the collider when crouching.")]
     [SerializeField] private float m_crouchHeight = 1f;
 
-    [Tooltip("Whether or not to apply gravity to the controller.")]
     [SerializeField] private bool m_useGravity = true;
 
-    [Tooltip("The max speed above which falling speed will be capped.")]
-    [SerializeField] private float m_maxFallSpeed = 20;
+    [SerializeField] public float m_maxFallSpeed = 20;
 
     [Header("Collision")]
 
-    [Tooltip("Which layers the controller should take into account when checking for collisions.")]
     [SerializeField] private LayerMask m_collisionMask;
 
-    [Tooltip(
-        "Buffer distance inside the collider from which to start collision checks. Should be very small (but not too small)."
-    )]
     [SerializeField] private float m_skinWidth = 0.015f;
 
-    [Tooltip("The maximum angle at which the controller will treat the surface like a slope.")]
     [SerializeField][Range(1, 89)] private float m_maxSlopeAngle = 55;
 
-    [Tooltip("The minimum angle at which the controller will treat a surface like a flat ceiling, stopping vertical movement.")]
     [SerializeField] private float m_minCeilingAngle = 165;
 
-    [Tooltip("The maximum height for a wall to be considered a step that the controller will snap up onto.")]
     [SerializeField] private float m_maxStepHeight = 0.2f;
 
-    [Tooltip("The minimum depth for steps that the controller can climb.")]
     [SerializeField] private float m_minStepDepth = 0.1f;
 
-    [Tooltip("Scalar for speed, affects things like jump height etc.")]
     [SerializeField] private float speedScalar = 5;
 
 
     [Header("Jump")]
 
-    [Tooltip("The height the controller can jump. Determines gravity along with jumpDistance.")]
     [SerializeField] private float m_jumpHeight = 4;
 
-    [Tooltip("The distance the controller can jump when moving at max speed. Determines gravity along with jumpHeight.")]
     [SerializeField] private float m_jumpDistance = 4;
 
-    [Tooltip("How long (in seconds) after you leave the ground can you still jump.")]
     [SerializeField] private float m_coyoteTime = 0.15f;
 
 
@@ -165,9 +152,9 @@ public class KinematicCharacterController : MonoBehaviour
     public bool isRunning { get; set; }
     public bool isSpriting { get; set; }
 
-    public float Gravity { get; private set; }
-    //lowkey need to elaborate on
-    private Vector3 gravityVector;
+    [SerializeField] public float Gravity;
+
+    public Vector3 gravityVector;
     public bool Coyote { get; private set; }
     public bool jumping, dashing;
     private float jumpForce;
@@ -314,33 +301,54 @@ public class KinematicCharacterController : MonoBehaviour
 
     ///  Moves the attached rigidbody in the desired direction, taking into account gravity, collisions, and slopes, using
     ///  the "collide and slide" algorithm. Returns the current calculatedVelocity. (Pick either this or Move())
-    public Vector3 Move(Vector2 moveDir, bool shouldJump, bool shouldDash)
+    public Vector3 Move(Vector2 moveDir)
     {
         //if (activeGrapple) return;
 
+        //for projection
         bounds = col.bounds;
         bounds.Expand(-2 * m_skinWidth);
 
+        //can probably remove
         isCrouching = UpdateCrouchState(ShouldCrouch);
-
 
         //seperating from motorinstance & iplayerengine for optimization
         groundSpeed = AccelScaling(new Vector3(moveDir.x, 0, moveDir.y));
         dashSpeed = AccelScaling(new Vector3(moveDir.x + forceToApply.x, 0, moveDir.y + forceToApply.z));
 
-
-
+        //mini state machine?? need to consolodate
         if(!dashing) moveAmount = groundSpeed * Time.deltaTime;
         else
         {
-            moveAmount = dashSpeed * Time.deltaTime;
+            // isDashing
+            if(jumpInput && (isGrounded || Coyote))
+            {
+                // works, but only durring coyote time atm due to collision shit
+                moveAmount = (dashSpeed * superDashScalar) * Time.deltaTime;
+                gravityVector.y = (jumpForce * superDashScalar) * Time.deltaTime;
+
+                superDash = true;
+                jumping = true;
+                Coyote = false;
+            }
+            else
+            {
+                moveAmount = dashSpeed * Time.deltaTime;
+                //can make it += to get void fiend dash, might make that an upgrade cause it feels cool & swag
+                //could be cool for vertical wavedashing <- insane
+                gravityVector.y -= 2 * Time.deltaTime;
+            }
         }
 
+        //collisions pt.1
         IsBumpingHead = CeilingCheck(transform.position);
         isGrounded = GroundCheck(transform.position);
+        if(isGrounded)
+        {
+            dashCdTimer = 0;
+        }
+
         LandedThisFrame = isGrounded && !wasGrounded;
-
-
 
         // coyote time
         if (wasGrounded && !isGrounded)
@@ -354,50 +362,32 @@ public class KinematicCharacterController : MonoBehaviour
             moveAmount = ProjectAndScale(moveAmount, _slopeNormal);
         }
 
+        //resetting raycasts
         hitPoints.Clear();
 
-        // --- collision   
+        // collisions pt.2
         moveAmount = CollideAndSlide(moveAmount, transform.position);
 
-        // --- gravity
+        // gravity
         if (m_useGravity)
         {
             //need to introduce gravity body code here
-            jumping = false;
-            //jump code
-            if (shouldJump && (isGrounded || Coyote))
-            {
-                if (LandedThisFrame)
-                {
-                    //bunnyhop anim for state machine
-                }
 
-                if (shouldDash)
-                {
-                    //super dash here
-                }
-                gravityVector.y = jumpForce * Time.deltaTime;
-                jumping = true;
-                Coyote = false;
-
-
-
-            }
-
+            Jump();
+            superDash = false;
 
             if ((isGrounded || wasGrounded) && !jumping && !activeGrapple)
             {
                 moveAmount += SnapToGround(transform.position + moveAmount);
             }
 
-/*            if(dashing)
-            {
-                moveAmount += forceToApply * Time.deltaTime;
-            }*/
-
+            // gravityVector Affectors
             if ((isGrounded && !jumping) || (!isGrounded && IsBumpingHead))
             {
                 //need to put old gravity code here
+
+
+                // THE DEVIL
                 gravityVector = new Vector3(0, Gravity, 0) * Time.deltaTime * Time.deltaTime;
             }
             else if (gravityVector.y > -m_maxFallSpeed)
@@ -405,7 +395,11 @@ public class KinematicCharacterController : MonoBehaviour
                 gravityVector.y += Gravity * Time.deltaTime * Time.deltaTime;
             }
 
-
+            //debug
+            if(UnityEngine.Input.GetKeyDown(KeyCode.M))
+            {
+                gravityVector.z += 0.1f;
+            }
 
             moveAmount += CollideAndSlide(gravityVector, transform.position + moveAmount, true);
         }
@@ -420,6 +414,9 @@ public class KinematicCharacterController : MonoBehaviour
 
     private void Dash()
     {
+        if (dashCdTimer > 0) return;
+        else dashCdTimer = dashCd;
+
         dashing = true; 
         forceToApply = orientation.forward * dashForce + orientation.up * dashVerticalForce;
 
@@ -431,6 +428,24 @@ public class KinematicCharacterController : MonoBehaviour
         Debug.Log(forceToApply.magnitude);
 
         Invoke(nameof(ResetDash), dashDuration);
+    }
+
+    private void Jump()
+    {
+
+        jumping = false;
+        //jump code
+        if (jumpInput && (isGrounded || Coyote))
+        {
+            if (LandedThisFrame)
+            {
+                //bunnyhop anim for state machine
+            }
+            // jumpforce
+            gravityVector.y = jumpForce * Time.deltaTime;
+            jumping = true;
+            Coyote = false;
+        }
     }
 
     private void ResetDash()
@@ -567,6 +582,7 @@ public class KinematicCharacterController : MonoBehaviour
         return vector;
     }
 
+    // might need to polish later
     private Vector3 SnapToGround(Vector3 pos)
     {
         float dist = m_maxStepHeight + m_skinWidth;
@@ -677,20 +693,10 @@ public class KinematicCharacterController : MonoBehaviour
         if (isSpriting) {  v = v * sprintSpeed; }
         return v;
     }
-
-
-    void OnEnable()
-    {
-        //input.Enable();
-    }
-
-    void OnDisable()
-    {
-        //input.Disable();
-    }
-
     void Update()
     {
+        InputUsage();
+
         /*#if UNITY_EDITOR
                 float halfDist = m_jumpDistance / 2;
                 Gravity = (-2 * m_jumpHeight * maxSpeed * maxSpeed) / (halfDist * halfDist);
@@ -699,46 +705,6 @@ public class KinematicCharacterController : MonoBehaviour
                 sphereOffsetBottom = new Vector3(0, col.radius, 0);
                 sphereOffsetTop = new Vector3(0, col.height - col.radius, 0);
         #endif*/
-
-        InputUsage();
-
-        if(grapplingCdTimer > 0)
-            grapplingCdTimer -= Time.deltaTime;
-
-        if(aimInput) SwitchCameraStyle(CameraStyle.Aim);
-        else SwitchCameraStyle(CameraStyle.Normal);
-
-        if (!isGrounded && aimInput)
-        {
-            BulletTime();
-        }
-        else
-        {
-            StandardTime();
-        }
-
-        if (dashInput && !dashing)
-        {
-            Dash();
-        }
-
-        if(shootInput)
-        {
-            StartGrapple();
-        }
-        //physics 
-        //direction = (orientation.forward * moveDir.y + orientation.right * moveDir.x);
-        direction = (cam.forward * moveDir.y + cam.right * moveDir.x);
-        direction.y = 0;
-        direction.Normalize();
-
-        //gets input into collide & slide every fixedupdate
-
-        //rotate orientation
-        //Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
-        if(direction!= Vector3.zero) orientation.forward = direction;
-
-        //rotate player object (ly-os <3)
         if (currentStyle == CameraStyle.Normal)
         {
             Vector3 inputDir = orientation.forward * lookDir.y + orientation.right * lookDir.x;
@@ -750,11 +716,12 @@ public class KinematicCharacterController : MonoBehaviour
         }
         else if (currentStyle == CameraStyle.Aim)
         {
-            Vector3 aimLook = aimTransform.position - new Vector3(direction.x, aimTransform.position.y, direction.z); ;
-            orientation.forward = direction;
+            //Vector3 aimLook = aimTransform.position - new Vector3(direction.x, aimTransform.position.y, direction.z); ;
+            //orientation.forward = direction;
 
-            playerObj.forward = direction;
+            if (direction != Vector3.zero) playerObj.forward = direction;
         }
+
 
         //overallDirection = new Vector3(moveDir.x, 0f, moveDir.y).normalized;
     }
@@ -780,14 +747,51 @@ public class KinematicCharacterController : MonoBehaviour
         //direction = (cam.transform.forward * moveDir.y + cam.transform.right * moveDir.x);
         //potentially could cause problems with gravity rotation
 
+        if (grapplingCdTimer > 0)
+            grapplingCdTimer -= Time.deltaTime;
+
+        if (dashCdTimer > 0) dashCdTimer -= Time.deltaTime;
+
+        if (aimInput) SwitchCameraStyle(CameraStyle.Aim);
+        else SwitchCameraStyle(CameraStyle.Normal);
+
+        if (!isGrounded && aimInput)
+        {
+            BulletTime();
+        }
+        else
+        {
+            StandardTime();
+        }
+
+        if (dashInput && !dashing)
+        {
+            Dash();
+        }
+
+        if (shootInput)
+        {
+            StartGrapple();
+        }
+        //physics 
+        //direction = (orientation.forward * moveDir.y + orientation.right * moveDir.x);
+        direction = (cam.forward * moveDir.y + cam.right * moveDir.x);
+        direction.y = 0;
+        direction.Normalize();
+
+        //gets input into collide & slide every fixedupdate
+
+        //rotate orientation
+        //Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
+        if (direction != Vector3.zero) orientation.forward = direction;
+
+        //rotate player object (ly-os <3)
+
+
         //for movement only
-
-
-
-
         dir = new Vector2(direction.x, direction.z);
 
-        velocity = Move(dir, jumpInput, dashInput);
+        velocity = Move(dir);
 
 
     }
@@ -860,6 +864,7 @@ public class KinematicCharacterController : MonoBehaviour
     {
         activeGrapple = true;
 
+        // forceToApply gets set for move and dash, you would need
         forceToApply = CalculateJumpVelocity(transform.position, targetPos, trajectoryHeight);
         Invoke(nameof(SetVelocity), 0.1f);
     }
@@ -884,7 +889,7 @@ public class KinematicCharacterController : MonoBehaviour
     {
         moveDir = UserInput.instance.moveInput;
         lookDir = UserInput.instance.lookInput;
-        jumpInput = UserInput.instance.jumpHeld;
+        jumpInput = UserInput.instance.jumpPressed;
         dashInput = UserInput.instance.dashPressed;
         aimInput = UserInput.instance.aimHeld;
         shootInput = UserInput.instance.shootPressed;
