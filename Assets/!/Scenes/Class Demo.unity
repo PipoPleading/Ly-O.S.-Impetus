@@ -1678,6 +1678,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4079049971170989319, guid: 47f1b064f669d6a4b80081329cf27057, type: 3}
+      propertyPath: m_useGravity
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4079049971170989319, guid: 47f1b064f669d6a4b80081329cf27057, type: 3}
       propertyPath: m_maxFallSpeed
       value: 1
       objectReference: {fileID: 0}
