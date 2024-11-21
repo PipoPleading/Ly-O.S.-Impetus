@@ -2,7 +2,8 @@ using UnityEngine;
 
 public class LevelData : MonoBehaviour
 {
-    [SerializeField] int fps;
+    //[SerializeField]
+/*    int fps;
 
     public void Save()
     {
@@ -12,19 +13,27 @@ public class LevelData : MonoBehaviour
     public void Load()
     {
         fps = PlayerPrefs.GetInt("Fps");
-        Application.targetFrameRate = fps;
+        Application.targetFrameRate = 60;
     }
 
     private void Awake()
     {
+
+
         Save();
         Load();
         Application.targetFrameRate = fps;
         Debug.Log(fps);
+    }*/
+
+    private void Start()
+    {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 120;
     }
 
-    private void Update()
+/*    private void Update()
     {
-        //Debug.Log(fps);
-    }
+        Debug.Log(fps);
+    }*/
 }
